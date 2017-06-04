@@ -9,7 +9,7 @@ Installing
 
 First, install twittermost
 
-    $ go install https://github.com/bwesterb/twittermost
+    $ go get https://github.com/bwesterb/twittermost
 
 Create a Twitter user (say @twitteruser) and a Mattermost user (say matteruser)
 for the bot.  Register a [new app](https://apps.twitter.com) on twitter
@@ -32,4 +32,19 @@ Now fill a `config.js`, like this:
         "AccessSecret":"twitter access secret"
     }
 
-Then run with `twittermost`.  That's it!
+Then run with `twittermost`.
+
+The twittermost bot will respond to command by trusted users.  To add trusted users, use:
+
+1. `@matteruser trust username`
+
+Like a chicken which hasn't seen its mother yet, the twittermost bot will trust anyone initially, until it's told who to trust.
+ 
+2. `@matteruser distrust username`
+   Removes the given Mattermost user from the trusted users.
+3. `@matteruser follow twitterhandle`
+   Follow the given user on twitter.
+4. `@matteruser unfollow twitterhandle`
+   Unfollow the given user on twitter.
+5. `@matteruser check`
+   Force a twitter timeline check for updates.  
