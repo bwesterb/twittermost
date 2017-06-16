@@ -165,14 +165,12 @@ func (b *Bot) setupMattermost() {
 	log.Println("Listening on websockets for events ...")
 
 	go func() {
-		for {
-			select {
-			case event := <-b.ws.EventChannel:
-				if event != nil {
-					b.handleWebSocketEvent(event)
-				}
+		for event := range b.ws.EventChannel {
+			if event != nil {
+				b.handleWebSocketEvent(event)
 			}
 		}
+		os.Exit(-1)
 	}()
 
 	// Say hi
