@@ -38,7 +38,7 @@ The twittermost bot will respond to command by trusted users.  To add trusted us
 
 1. `@matteruser trust username`
 
-Like a chicken which hasn't seen its mother yet, the twittermost bot will trust anyone initially, until it's told who to trust.
+Like a chick which hasn't seen its mother yet, the twittermost bot will trust anyone initially, until it's told who to trust.
  
 2. `@matteruser distrust username`
    Removes the given Mattermost user from the trusted users.
