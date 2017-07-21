@@ -9,7 +9,7 @@ Installing
 
 First, install twittermost
 
-    $ go get https://github.com/bwesterb/twittermost
+    $ go get github.com/bwesterb/twittermost
 
 Create a Twitter user (say @twitteruser) and a Mattermost user (say matteruser)
 for the bot.  Register a [new app](https://apps.twitter.com) on twitter
