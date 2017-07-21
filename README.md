@@ -14,7 +14,7 @@ First, install twittermost
 Create a Twitter user (say @twitteruser) and a Mattermost user (say matteruser)
 for the bot.  Register a [new app](https://apps.twitter.com) on twitter
 to get *consumer key*, *consumer secret*, *access token* and *access secret*.
-Now fill a `config.js`, like this:
+Now fill a `config.json`, like this:
     
     {
         "Url":"https://domainofmattermost.com",
