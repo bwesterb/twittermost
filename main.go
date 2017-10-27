@@ -51,10 +51,11 @@ type BotConf struct {
 }
 
 type Bot struct {
-	conf     BotConf
-	data     botData
-	dataLock sync.Mutex
-	running  bool
+	commandHandlers map[string]commandHandler
+	conf            BotConf
+	data            botData
+	dataLock        sync.Mutex
+	running         bool
 
 	// mattermost
 	mm           *model.Client      // mattermost client
@@ -71,9 +72,33 @@ type Bot struct {
 	checkTicker *time.Ticker
 }
 
+type commandHandler func(*model.Post, []string)
+
 func NewBot(conf BotConf) (b *Bot) {
 	b = &Bot{conf: conf}
+	b.commandHandlers = map[string]commandHandler{
+		"ping":      b.handlePing,
+		"follow":    b.handleFollow,
+		"unfollow":  b.handleUnfollow,
+		"followers": b.handleFollowers,
+		"trust":     b.handleTrust,
+		"distrust":  b.handleDistrust,
+		"check":     b.handleCheck,
+	}
 	return
+}
+
+func (b *Bot) handleUnknownCommand(post *model.Post, args []string) {
+	cmds := ""
+	for k := range b.commandHandlers {
+		if cmds == "" {
+			cmds = k
+		} else {
+			cmds += ", " + k
+		}
+	}
+	b.replyToPost("Sorry, I don't understand that command.  "+
+		"Available commands: "+cmds, post)
 }
 
 // sets up the mattermost connection
@@ -199,22 +224,11 @@ func (b *Bot) handleWebSocketEvent(event *model.WebSocketEvent) {
 	bits := strings.SplitN(msg, " ", 2)
 	cmd := bits[0]
 
-	switch cmd {
-	case "ping":
-		b.replyToPost("pong", post)
-	case "unfollow":
-		b.handleUnfollow(post, bits[1:])
-	case "follow":
-		b.handleFollow(post, bits[1:])
-	case "followers":
-		b.handleFollowers(post)
-	case "trust":
-		b.handleTrust(post, bits[1:])
-	case "distrust":
-		b.handleDistrust(post, bits[1:])
-	case "check":
-		b.handleCheck(post)
+	handler, ok := b.commandHandlers[cmd]
+	if !ok {
+		handler = b.handleUnknownCommand
 	}
+	handler(post, bits[1:])
 }
 
 func (b *Bot) checkTimeline() {
@@ -271,7 +285,11 @@ func (b *Bot) isTrusted(userId string) bool {
 	return ok && trusted
 }
 
-func (b *Bot) handleCheck(post *model.Post) {
+func (b *Bot) handlePing(post *model.Post, args []string) {
+	b.replyToPost("pong", post)
+}
+
+func (b *Bot) handleCheck(post *model.Post, args []string) {
 	if !b.isTrusted(post.UserId) {
 		b.replyToPost("Sorry, I don't trust you :/", post)
 		return
@@ -279,7 +297,7 @@ func (b *Bot) handleCheck(post *model.Post) {
 	b.checkTimeline()
 }
 
-func (b *Bot) handleFollowers(post *model.Post) {
+func (b *Bot) handleFollowers(post *model.Post, args []string) {
 	// Blocks on https://github.com/dghubble/go-twitter/issues/72
 	if !b.isTrusted(post.UserId) {
 		b.replyToPost("Sorry, I don't trust you :/", post)
