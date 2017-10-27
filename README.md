@@ -9,12 +9,12 @@ Installing
 
 First, install twittermost
 
-    $ go get https://github.com/bwesterb/twittermost
+    $ go get github.com/bwesterb/twittermost
 
 Create a Twitter user (say @twitteruser) and a Mattermost user (say matteruser)
 for the bot.  Register a [new app](https://apps.twitter.com) on twitter
 to get *consumer key*, *consumer secret*, *access token* and *access secret*.
-Now fill a `config.js`, like this:
+Now fill a `config.json`, like this:
     
     {
         "Url":"https://domainofmattermost.com",
@@ -38,7 +38,7 @@ The twittermost bot will respond to command by trusted users.  To add trusted us
 
 1. `@matteruser trust username`
 
-Like a chicken which hasn't seen its mother yet, the twittermost bot will trust anyone initially, until it's told who to trust.
+Like a chick which hasn't seen its mother yet, the twittermost bot will trust anyone initially, until it's told who to trust.
  
 2. `@matteruser distrust username`
    Removes the given Mattermost user from the trusted users.
