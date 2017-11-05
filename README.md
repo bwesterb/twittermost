@@ -30,8 +30,8 @@ Then clone (or download) this project.
 Copy `config.template`to `config.json` in the `conf` folder. Now edit it with the information obtained from Twitter.
 Then run 
 ```
-    docker build . -t twittermost
-    docker run -it --rm --name twittermost -v "$PWD"/conf:/go/src/app/conf twittermost
+docker build . -t twittermost
+docker run -it --rm --name twittermost -v "$PWD"/conf:/go/src/app/conf twittermost
 ```
 
 
