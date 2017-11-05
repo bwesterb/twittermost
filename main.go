@@ -58,7 +58,7 @@ type Bot struct {
 	running         bool
 
 	// mattermost
-	mm           *model.Client      // mattermost client
+	mm           *model.Client4      // mattermost client
 	mmu          *model.User        // mattermost user
 	team         *model.Team        // mattermost team
 	initialLoad  *model.InitialLoad // mattermost initial load
@@ -103,78 +103,51 @@ func (b *Bot) handleUnknownCommand(post *model.Post, args []string) {
 
 // sets up the mattermost connection
 func (b *Bot) setupMattermost() {
-	b.mm = model.NewClient(b.conf.Url)
+	b.mm = model.NewAPIv4Client(b.conf.Url)
 
 	// Check the connection
-	if props, err := b.mm.GetPing(); err != nil {
-		log.Fatalf("mattermost: could not connect: %s", err)
+	if _, response := b.mm.GetPing(); response.Error != nil {
+		log.Fatalf("mattermost: could not connect: %#v", response.Error)
 	} else {
-		log.Printf("Connected to mattermost server %s", props["version"])
+		log.Printf("Connected to mattermost server at %s", b.conf.Url)
 	}
 
 	// Log in
-	if loginResult, err := b.mm.Login(b.conf.User, b.conf.Password); err != nil {
-		log.Fatalf("mattermost: could not login: %s", err)
+	if loginResult, result := b.mm.Login(b.conf.User, b.conf.Password); result.Error != nil {
+		log.Fatalf("mattermost: could not login: %s", result.Error)
 	} else {
 		log.Printf("mattermost: logged in as %s", b.conf.User)
-		b.mmu = loginResult.Data.(*model.User)
-	}
-
-	// Initial load
-	log.Println("Fetching initial data --- including teams:")
-	if initialLoadResults, err := b.mm.GetInitialLoad(); err != nil {
-		log.Fatalf("mattermost: GetInitialLoad() failed: %s", err)
-	} else {
-		b.initialLoad = initialLoadResults.Data.(*model.InitialLoad)
+		b.mmu = loginResult
 	}
 
 	// Find team
-	for _, team := range b.initialLoad.Teams {
-		log.Printf(" - %s %s %#v", team.Id, team.Name, team.DisplayName)
-		if team.Name != b.conf.Team {
-			continue
-		}
+	if team, result := b.mm.GetTeamByName(b.conf.Team,""); result.Error != nil {
+		log.Fatalf("Could not find team %s: %s", b.conf.Team, result.Error)
+	} else {
 		b.team = team
 	}
-
-	if b.team == nil {
-		log.Fatalf("Could not find team %s", b.conf.Team)
+	
+	// Find DebugChannel
+	if channel, result := b.mm.GetChannelByName(b.conf.DebugChannel, b.team.Id, ""); result.Error != nil {
+		log.Fatalf("Could not find debug channel %s", b.conf.DebugChannel)
+	} else {
+		b.debugChannel = channel
 	}
-	b.mm.SetTeamId(b.team.Id)
+
+	// Find Channel
+	if channel, result := b.mm.GetChannelByName(b.conf.Channel, b.team.Id, ""); result.Error != nil {
+		log.Fatalf("Could not find channel %s", b.conf.DebugChannel)
+	} else {
+		b.channel = channel
+	}
 
 	// Join channels
-	if _, err := b.mm.JoinChannelByName(b.conf.Channel); err != nil {
-		log.Fatalf("Could not join channel %s: %s", b.conf.Channel, err)
-	}
-	if _, err := b.mm.JoinChannelByName(b.conf.DebugChannel); err != nil {
-		log.Fatalf("Could not join channel %s: %s", b.conf.DebugChannel, err)
-	}
 
-	// Find channel
-	log.Println("Fetching channel list:")
-	if channelsResult, err := b.mm.GetChannels(""); err != nil {
-		log.Fatalf("Failed to get channel list: %s", err)
-	} else {
-		chans := channelsResult.Data.(*model.ChannelList)
-		for _, channel := range *chans {
-			log.Printf(" - %s %s %#v", channel.Id, channel.Name,
-				channel.DisplayName)
-			if channel.Name == b.conf.Channel {
-				log.Println("   (channel)")
-				b.channel = channel
-			}
-			if channel.Name == b.conf.DebugChannel {
-				log.Println("   (debugChannel)")
-				b.debugChannel = channel
-			}
-		}
+	if _, result := b.mm.AddChannelMember(b.channel.Id, b.mmu.Id); result.Error != nil {
+		log.Fatalf("Could not join channel %s: %s", b.conf.Channel, result.Error)
 	}
-
-	if b.channel == nil {
-		log.Fatalf("Could not find channel %s", b.conf.Channel)
-	}
-	if b.debugChannel == nil {
-		log.Fatalf("Could not find debug channel %s", b.conf.DebugChannel)
+	if _, result := b.mm.AddChannelMember(b.debugChannel.Id, b.mmu.Id); result.Error != nil {
+		log.Fatalf("Could not join channel %s: %s", b.conf.Channel, result.Error)
 	}
 
 	u, _ := url.Parse(b.conf.Url)
@@ -271,8 +244,8 @@ func (b *Bot) postTweet(tweet twitter.Tweet) {
 		ChannelId: b.channel.Id,
 		Message:   text,
 	}
-	if _, err := b.mm.CreatePost(myPost); err != nil {
-		log.Printf("postTweet failed: %s", err)
+	if _, result := b.mm.CreatePost(myPost); result.Error != nil {
+		log.Printf("postTweet failed: %s", result.Error)
 	}
 }
 
@@ -352,6 +325,7 @@ func (b *Bot) handleFollow(post *model.Post, arg []string) {
 		return
 	}
 
+	log.Printf("Following %s", arg[0])	
 	handle := strings.TrimPrefix(strings.TrimSpace(arg[0]), "@")
 	pars := twitter.FriendshipCreateParams{ScreenName: handle}
 	if _, _, err := b.tw.Friendships.Create(&pars); err != nil {
@@ -376,11 +350,11 @@ func (b *Bot) handleTrust(post *model.Post, arg []string) {
 		uid = post.UserId
 	} else {
 		userName := strings.TrimPrefix(strings.TrimSpace(arg[0]), "@")
-		if res, err := b.mm.GetByUsername(userName, ""); err != nil {
-			b.replyToPost(fmt.Sprintf("error: %#v", err.Error()), post)
+		if res, result := b.mm.GetUserByUsername(userName, ""); result.Error != nil {
+			b.replyToPost(fmt.Sprintf("error: %#v", result.Error), post)
 			return
 		} else {
-			uid = res.Data.(*model.User).Id
+			uid = res.Id
 		}
 	}
 
@@ -409,11 +383,11 @@ func (b *Bot) handleDistrust(post *model.Post, arg []string) {
 		uid = post.UserId
 	} else {
 		userName := strings.TrimPrefix(strings.TrimSpace(arg[0]), "@")
-		if res, err := b.mm.GetByUsername(userName, ""); err != nil {
-			b.replyToPost(fmt.Sprintf("error: %#v", err.Message), post)
+		if res, result := b.mm.GetUserByUsername(userName, ""); result.Error != nil {
+			b.replyToPost(fmt.Sprintf("error: %#v", result.Error), post)
 			return
 		} else {
-			uid = res.Data.(*model.User).Id
+			uid = res.Id
 		}
 	}
 
@@ -435,8 +409,8 @@ func (b *Bot) replyToPost(msg string, post *model.Post) {
 		Message:   msg,
 		RootId:    post.Id,
 	}
-	if _, err := b.mm.CreatePost(myPost); err != nil {
-		log.Printf("replyToPost failed: %s", err)
+	if _, result := b.mm.CreatePost(myPost); result.Error != nil {
+		log.Printf("replyToPost failed: %s", result.Error)
 	}
 }
 
@@ -532,8 +506,8 @@ func (b *Bot) Logf(msg string, args ...interface{}) {
 		ChannelId: b.debugChannel.Id,
 		Message:   s,
 	}
-	if _, err := b.mm.CreatePost(post); err != nil {
-		log.Printf("Failed to send debug message: %s", err)
+	if _, result := b.mm.CreatePost(post); result.Error != nil {
+		log.Printf("Failed to send debug message: %s", result.Error)
 	}
 }
 
