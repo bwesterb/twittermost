@@ -116,15 +116,16 @@ func (b *Bot) setupMattermost() {
 	if b.conf.Token != "" {
 		b.mm.SetOAuthToken(b.conf.Token);
 		if user, result := b.mm.GetMe(""); result.Error != nil {
-			log.Fatalf("mattermost: could not login: %#v", result.Error)
+			log.Fatalf("mattermost: could not login: %s", result.Error)
 		} else {
+			log.Printf("mattermost: logged in as %s", user.Username)
 			b.mmu = user
 		}
 	} else {
 		if user, result := b.mm.Login(b.conf.User, b.conf.Password); result.Error != nil {
 			log.Fatalf("mattermost: could not login: %s", result.Error)
 		} else {
-			log.Printf("mattermost: logged in as %s", b.conf.User)
+			log.Printf("mattermost: logged in as %s", user.Username)
 			b.mmu = user
 		}
 	}
