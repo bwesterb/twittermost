@@ -37,6 +37,7 @@ type BotConf struct {
 	User         string
 	Email        string
 	Password     string
+	Token        string
 	Team         string
 	Channel      string
 	DebugChannel string
@@ -112,11 +113,20 @@ func (b *Bot) setupMattermost() {
 	}
 
 	// Log in
-	if loginResult, result := b.mm.Login(b.conf.User, b.conf.Password); result.Error != nil {
-		log.Fatalf("mattermost: could not login: %s", result.Error)
+	if b.conf.Token != "" {
+		b.mm.SetOAuthToken(b.conf.Token);
+		if user, result := b.mm.GetMe(""); result.Error != nil {
+			log.Fatalf("mattermost: could not login: %#v", result.Error)
+		} else {
+			b.mmu = user
+		}
 	} else {
-		log.Printf("mattermost: logged in as %s", b.conf.User)
-		b.mmu = loginResult
+		if user, result := b.mm.Login(b.conf.User, b.conf.Password); result.Error != nil {
+			log.Fatalf("mattermost: could not login: %s", result.Error)
+		} else {
+			log.Printf("mattermost: logged in as %s", b.conf.User)
+			b.mmu = user
+		}
 	}
 
 	// Find team
