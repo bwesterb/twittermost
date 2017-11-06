@@ -540,7 +540,7 @@ func (b *Bot) Logf(msg string, args ...interface{}) {
 func main() {
 	var confPath string
 	conf := BotConf{
-		DataPath:      "conf/mattermost.json",
+		DataPath:      "mattermost.json",
 		Channel:       "town-square",
 		DebugChannel:  "test",
 		MaxTweets:     20,
@@ -548,7 +548,7 @@ func main() {
 	}
 
 	// Parse cmdline flags
-	flag.StringVar(&confPath, "conf/config", "conf/config.json",
+	flag.StringVar(&confPath, "config", "config.json",
 		"Path to configuration file")
 	flag.Parse()
 
