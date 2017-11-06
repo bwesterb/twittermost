@@ -58,12 +58,11 @@ type Bot struct {
 	running         bool
 
 	// mattermost
-	mm           *model.Client4      // mattermost client
-	mmu          *model.User        // mattermost user
-	team         *model.Team        // mattermost team
-	initialLoad  *model.InitialLoad // mattermost initial load
-	channel      *model.Channel     // main channel
-	debugChannel *model.Channel     // debugging channel
+	mm           *model.Client4 // mattermost client
+	mmu          *model.User    // mattermost user
+	team         *model.Team    // mattermost team
+	channel      *model.Channel // main channel
+	debugChannel *model.Channel // debugging channel
 	ws           *model.WebSocketClient
 
 	// twitter
@@ -107,7 +106,7 @@ func (b *Bot) setupMattermost() {
 
 	// Check the connection
 	if _, response := b.mm.GetPing(); response.Error != nil {
-		log.Fatalf("mattermost: could not connect: %#v", response.Error)
+		log.Fatalf("mattermost: could not connect: %s", response.Error)
 	} else {
 		log.Printf("Connected to mattermost server at %s", b.conf.Url)
 	}
@@ -121,12 +120,12 @@ func (b *Bot) setupMattermost() {
 	}
 
 	// Find team
-	if team, result := b.mm.GetTeamByName(b.conf.Team,""); result.Error != nil {
+	if team, result := b.mm.GetTeamByName(b.conf.Team, ""); result.Error != nil {
 		log.Fatalf("Could not find team %s: %s", b.conf.Team, result.Error)
 	} else {
 		b.team = team
 	}
-	
+
 	// Find DebugChannel
 	if channel, result := b.mm.GetChannelByName(b.conf.DebugChannel, b.team.Id, ""); result.Error != nil {
 		log.Fatalf("Could not find debug channel %s", b.conf.DebugChannel)
@@ -142,14 +141,15 @@ func (b *Bot) setupMattermost() {
 	}
 
 	// Join channels
-
 	if _, result := b.mm.AddChannelMember(b.channel.Id, b.mmu.Id); result.Error != nil {
 		log.Fatalf("Could not join channel %s: %s", b.conf.Channel, result.Error)
 	}
+
 	if _, result := b.mm.AddChannelMember(b.debugChannel.Id, b.mmu.Id); result.Error != nil {
 		log.Fatalf("Could not join channel %s: %s", b.conf.Channel, result.Error)
 	}
 
+	// Set up websockets listener
 	u, _ := url.Parse(b.conf.Url)
 	u.Scheme = "wss" // no one should use non-SSL anyway
 
@@ -211,7 +211,7 @@ func (b *Bot) checkTimeline() {
 	}
 	tweets, _, err := b.tw.Timelines.HomeTimeline(&pars)
 	if err != nil {
-		b.Logf("checkTimeline error: %#v", err)
+		b.Logf("checkTimeline error: %s", err)
 		return
 	}
 
@@ -286,7 +286,7 @@ func (b *Bot) handleFollowers(post *model.Post, args []string) {
 		}
 		*pars.IncludeUserEntities = true
 		if resp, _, err := b.tw.Friends.List(&pars); err != nil {
-			b.replyToPost(fmt.Sprintf("error: %#v", err), post)
+			b.replyToPost(fmt.Sprintf("error: %s", err), post)
 			return
 		} else {
 			if len(resp.Users) == 0 {
@@ -312,7 +312,7 @@ func (b *Bot) handleUnfollow(post *model.Post, arg []string) {
 	handle := strings.TrimPrefix(strings.TrimSpace(arg[0]), "@")
 	pars := twitter.FriendshipDestroyParams{ScreenName: handle}
 	if _, _, err := b.tw.Friendships.Destroy(&pars); err != nil {
-		b.replyToPost(fmt.Sprintf("Something went wrong: %#v", err), post)
+		b.replyToPost(fmt.Sprintf("Something went wrong: %s", err), post)
 		return
 	}
 
@@ -325,11 +325,10 @@ func (b *Bot) handleFollow(post *model.Post, arg []string) {
 		return
 	}
 
-	log.Printf("Following %s", arg[0])	
 	handle := strings.TrimPrefix(strings.TrimSpace(arg[0]), "@")
 	pars := twitter.FriendshipCreateParams{ScreenName: handle}
 	if _, _, err := b.tw.Friendships.Create(&pars); err != nil {
-		b.replyToPost(fmt.Sprintf("Something went wrong: %#v", err), post)
+		b.replyToPost(fmt.Sprintf("Something went wrong: %s", err), post)
 		return
 	}
 
@@ -351,7 +350,7 @@ func (b *Bot) handleTrust(post *model.Post, arg []string) {
 	} else {
 		userName := strings.TrimPrefix(strings.TrimSpace(arg[0]), "@")
 		if res, result := b.mm.GetUserByUsername(userName, ""); result.Error != nil {
-			b.replyToPost(fmt.Sprintf("error: %#v", result.Error), post)
+			b.replyToPost(fmt.Sprintf("error: %s", result.Error), post)
 			return
 		} else {
 			uid = res.Id
@@ -384,7 +383,7 @@ func (b *Bot) handleDistrust(post *model.Post, arg []string) {
 	} else {
 		userName := strings.TrimPrefix(strings.TrimSpace(arg[0]), "@")
 		if res, result := b.mm.GetUserByUsername(userName, ""); result.Error != nil {
-			b.replyToPost(fmt.Sprintf("error: %#v", result.Error), post)
+			b.replyToPost(fmt.Sprintf("error: %s", result.Error), post)
 			return
 		} else {
 			uid = res.Id
