@@ -15,7 +15,7 @@ Create a Twitter user (say @twitteruser) and a Mattermost user (say matteruser)
 for the bot.  Register a [new app](https://apps.twitter.com) on twitter
 to get *consumer key*, *consumer secret*, *access token* and *access secret*.
 
-Copy the file `conf/config.template` to `config.json`. Now edit it with the information obtained from Twitter.
+Copy `config.json.template`to `config.json` in the `conf` folder. Now edit it with the information obtained from Twitter.
 Then run with `twittermost`.
 
 Install Using Docker
@@ -27,7 +27,7 @@ for the bot.  Register a [new app](https://apps.twitter.com) on twitter
 to get *consumer key*, *consumer secret*, *access token* and *access secret*.
 
 Then clone (or download) this project.
-Copy `config.template`to `config.json` in the `conf` folder. Now edit it with the information obtained from Twitter.
+Copy `config.json.template`to `config.json` in the `conf` folder. Now edit it with the information obtained from Twitter.
 Then run 
 ```
 docker build . -t twittermost

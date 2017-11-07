@@ -538,7 +538,7 @@ func (b *Bot) Logf(msg string, args ...interface{}) {
 }
 
 func main() {
-	var confPath string
+	var confPath = "conf/config.json"
 	conf := BotConf{
 		DataPath:      "mattermost.json",
 		Channel:       "town-square",
@@ -547,8 +547,14 @@ func main() {
 		CheckInterval: 120,
 	}
 
+	//Check whether old config file exists
+	if _, err := os.Stat("config.json"); !os.IsNotExist(err) {
+		// fall back to old config file location
+		confPath = "config.json"
+	}
+	
 	// Parse cmdline flags
-	flag.StringVar(&confPath, "config", "config.json",
+	flag.StringVar(&confPath, "config", confPath, 
 		"Path to configuration file")
 	flag.Parse()
 
