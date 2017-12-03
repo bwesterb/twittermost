@@ -181,9 +181,6 @@ func (b *Bot) setupMattermost() {
 		}
 		os.Exit(-1)
 	}()
-
-	// Say hi
-	// b.Logf("I'm up ...")
 }
 
 func (b *Bot) handleWebSocketEvent(event *model.WebSocketEvent) {
