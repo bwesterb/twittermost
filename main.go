@@ -18,7 +18,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
 	"github.com/mattermost/mattermost-server/model"
@@ -164,7 +163,7 @@ func (b *Bot) setupMattermost() {
 	u, _ := url.Parse(b.conf.Url)
 	u.Scheme = "wss" // no one should use non-SSL anyway
 
-	if ws, err := model.NewWebSocketClient(u.String(), b.mm.AuthToken); err != nil {
+	if ws, err := model.NewWebSocketClient4(u.String(), b.mm.AuthToken); err != nil {
 		log.Fatalf("Could not connect with websocket: %s", err)
 	} else {
 		b.ws = ws
