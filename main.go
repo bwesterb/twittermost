@@ -279,6 +279,7 @@ func (b *Bot) handleCheck(post *model.Post, args []string) {
 		return
 	}
 	b.checkTimeline()
+	b.replyToPost("Done!", post)
 }
 
 func (b *Bot) handleFollowers(post *model.Post, args []string) {
