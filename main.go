@@ -18,6 +18,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
 	"github.com/mattermost/mattermost-server/model"
@@ -113,7 +114,7 @@ func (b *Bot) setupMattermost() {
 
 	// Log in
 	if b.conf.Token != "" {
-		b.mm.SetOAuthToken(b.conf.Token);
+		b.mm.SetOAuthToken(b.conf.Token)
 		if user, result := b.mm.GetMe(""); result.Error != nil {
 			log.Fatalf("mattermost: could not login: %s", result.Error)
 		} else {
@@ -535,9 +536,9 @@ func main() {
 		// fall back to old config file location
 		confPath = "config.json"
 	}
-	
+
 	// Parse cmdline flags
-	flag.StringVar(&confPath, "config", confPath, 
+	flag.StringVar(&confPath, "config", confPath,
 		"Path to configuration file")
 	flag.Parse()
 
