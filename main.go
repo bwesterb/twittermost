@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cenkalti/backoff"
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
 	"github.com/mattermost/mattermost-server/model"
@@ -160,27 +161,44 @@ func (b *Bot) setupMattermost() {
 		log.Fatalf("Could not join channel %s: %s", b.conf.Channel, result.Error)
 	}
 
-	// Set up websockets listener
+	b.setupWebSocketClient()
+
+	go func() {
+		for {
+			for event := range b.ws.EventChannel {
+				if event != nil {
+					b.handleWebSocketEvent(event)
+				}
+			}
+			if !b.running {
+				return
+			}
+			log.Println("Websockets connection lost.")
+
+			bo := backoff.NewExponentialBackOff()
+			err := backoff.Retry(b.setupWebSocketClient, bo)
+			if err != nil {
+				log.Fatalf("Failed to reconnect websockets: %s", err)
+			}
+		}
+	}()
+}
+
+func (b *Bot) setupWebSocketClient() error {
+	log.Println("Connecting websocket to listen for events ...")
 	u, _ := url.Parse(b.conf.Url)
 	u.Scheme = "wss" // no one should use non-SSL anyway
 
 	if ws, err := model.NewWebSocketClient4(u.String(), b.mm.AuthToken); err != nil {
-		log.Fatalf("Could not connect with websocket: %s", err)
+		log.Printf("  failed: %s", err)
+		return err
 	} else {
 		b.ws = ws
 	}
 
 	b.ws.Listen()
-	log.Println("Listening on websockets for events ...")
-
-	go func() {
-		for event := range b.ws.EventChannel {
-			if event != nil {
-				b.handleWebSocketEvent(event)
-			}
-		}
-		os.Exit(-1)
-	}()
+	log.Println("  done!")
+	return nil
 }
 
 func (b *Bot) handleWebSocketEvent(event *model.WebSocketEvent) {
@@ -428,7 +446,7 @@ func (b *Bot) setupGracefulShutdown() {
 	go func() {
 		for _ = range c {
 			log.Printf("Interrupt received --- shutting down...")
-			// b.Logf("        ... going down")
+			b.running = false
 			if b.ws != nil {
 				log.Println("  websockets")
 				b.ws.Close()
