@@ -207,6 +207,7 @@ func (b *Bot) handleWebSocketEvent(event *model.WebSocketEvent) {
 		return
 	}
 
+	isDM := event.Data["channel_type"] == "D"
 	post := model.PostFromJson(strings.NewReader(event.Data["post"].(string)))
 	if post == nil {
 		return
@@ -217,7 +218,7 @@ func (b *Bot) handleWebSocketEvent(event *model.WebSocketEvent) {
 
 	msg0 := strings.TrimSpace(post.Message)
 	msg := strings.TrimSpace(strings.TrimPrefix(msg0, "@"+b.conf.User))
-	if msg == msg0 {
+	if !isDM && msg == msg0 {
 		return // message does not start with @ourusername
 	}
 
