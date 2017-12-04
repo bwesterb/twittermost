@@ -85,6 +85,7 @@ func NewBot(conf BotConf) (b *Bot) {
 		"trust":     b.handleTrust,
 		"distrust":  b.handleDistrust,
 		"check":     b.handleCheck,
+		"clear":     b.handleClear,
 	}
 	return
 }
@@ -288,13 +289,51 @@ func (b *Bot) handlePing(post *model.Post, args []string) {
 	b.replyToPost("pong", post)
 }
 
+func (b *Bot) handleClear(post *model.Post, args []string) {
+	if !b.isTrusted(post.UserId) {
+		b.replyToPost("Sorry, I don't trust you :/", post)
+		return
+	}
+
+	pageSize := 1000
+	page := 0
+
+	for {
+		list, res := b.mm.GetPostsForChannel(b.debugChannel.Id, page, pageSize, "")
+		if res.Error != nil {
+			b.replyToPost(fmt.Sprintf("error: %s", res.Error), post)
+			return
+		}
+
+		for _, post := range list.Posts {
+			if post.UserId != b.mmu.Id {
+				continue
+			}
+			if len(post.ParentId) > 0 {
+				continue
+			}
+			if ok, res := b.mm.DeletePost(post.Id); !ok {
+				b.replyToPost(fmt.Sprintf("error: %s", res.Error), post)
+				return
+			}
+		}
+
+		if len(list.Posts) == 0 {
+			break
+		}
+		page++
+	}
+
+	b.replyToPost("done!", post)
+}
+
 func (b *Bot) handleCheck(post *model.Post, args []string) {
 	if !b.isTrusted(post.UserId) {
 		b.replyToPost("Sorry, I don't trust you :/", post)
 		return
 	}
 	b.checkTimeline()
-	b.replyToPost("Done!", post)
+	b.replyToPost("done!", post)
 }
 
 func (b *Bot) handleFollowers(post *model.Post, args []string) {

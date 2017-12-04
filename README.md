@@ -52,3 +52,5 @@ Like a chick which hasn't seen its mother yet, the twittermost bot will trust an
    Unfollow the given user on twitter.
 5. `@matteruser check`
    Force a twitter timeline check for updates.  
+5. `@matteruser clear`
+   Removes all error messages in the debug channel.
