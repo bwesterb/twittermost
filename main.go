@@ -140,15 +140,22 @@ func (b *Bot) setupMattermost() {
 	}
 
 	// Find DebugChannel
-	if channel, result := b.mm.GetChannelByName(b.conf.DebugChannel, b.team.Id, ""); result.Error != nil {
-		log.Fatalf("Could not find debug channel %s", b.conf.DebugChannel)
+	if b.conf.DebugChannel != "" {
+		if channel, result := b.mm.GetChannelByName(
+			b.conf.DebugChannel,
+			b.team.Id,
+			""); result.Error != nil {
+			log.Fatalf("Could not find debug channel %s", b.conf.DebugChannel)
+		} else {
+			b.debugChannel = channel
+		}
 	} else {
-		b.debugChannel = channel
+		log.Println("No DebugChannel set --- printing to stdout instead")
 	}
 
 	// Find Channel
 	if channel, result := b.mm.GetChannelByName(b.conf.Channel, b.team.Id, ""); result.Error != nil {
-		log.Fatalf("Could not find channel %s", b.conf.DebugChannel)
+		log.Fatalf("Could not find channel %s", b.conf.Channel)
 	} else {
 		b.channel = channel
 	}
@@ -158,8 +165,10 @@ func (b *Bot) setupMattermost() {
 		log.Fatalf("Could not join channel %s: %s", b.conf.Channel, result.Error)
 	}
 
-	if _, result := b.mm.AddChannelMember(b.debugChannel.Id, b.mmu.Id); result.Error != nil {
-		log.Fatalf("Could not join channel %s: %s", b.conf.Channel, result.Error)
+	if b.mm.debugChannel != nil {
+		if _, result := b.mm.AddChannelMember(b.debugChannel.Id, b.mmu.Id); result.Error != nil {
+			log.Fatalf("Could not join channel %s: %s", b.conf.Channel, result.Error)
+		}
 	}
 
 	b.setupWebSocketClient()
@@ -293,6 +302,11 @@ func (b *Bot) handlePing(post *model.Post, args []string) {
 func (b *Bot) handleClear(post *model.Post, args []string) {
 	if !b.isTrusted(post.UserId) {
 		b.replyToPost("Sorry, I don't trust you :/", post)
+		return
+	}
+
+	if b.debugChannel == nil {
+		b.replyToPost("No DebugChannel set: there is nothing to clear!", post)
 		return
 	}
 
@@ -568,6 +582,10 @@ func (b *Bot) setupTwitter() {
 
 func (b *Bot) Logf(msg string, args ...interface{}) {
 	s := fmt.Sprintf(msg, args...)
+	if b.debugChannel == nil {
+		log.Printf("DebugChannel: %s", s)
+		return
+	}
 	post := &model.Post{
 		ChannelId: b.debugChannel.Id,
 		Message:   s,
