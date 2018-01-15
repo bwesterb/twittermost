@@ -165,7 +165,7 @@ func (b *Bot) setupMattermost() {
 		log.Fatalf("Could not join channel %s: %s", b.conf.Channel, result.Error)
 	}
 
-	if b.mm.debugChannel != nil {
+	if b.debugChannel != nil {
 		if _, result := b.mm.AddChannelMember(b.debugChannel.Id, b.mmu.Id); result.Error != nil {
 			log.Fatalf("Could not join channel %s: %s", b.conf.Channel, result.Error)
 		}
