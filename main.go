@@ -8,6 +8,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -171,9 +172,9 @@ func (b *Bot) setupMattermost() {
 		}
 	}
 
-	b.setupWebSocketClient()
-
 	go func() {
+		b.setupWebSocketClient()
+
 		for {
 			for event := range b.ws.EventChannel {
 				if event != nil {
@@ -207,6 +208,20 @@ func (b *Bot) setupWebSocketClient() error {
 	}
 
 	b.ws.Listen()
+
+	// Handle first message to check that the connection has been properly setup
+	ok := false
+	for event := range b.ws.EventChannel {
+		if event != nil {
+			b.handleWebSocketEvent(event)
+		}
+		ok = true
+		break
+	}
+	if !ok {
+		return errors.New("Failed to read message")
+	}
+
 	log.Println("  done!")
 	return nil
 }
