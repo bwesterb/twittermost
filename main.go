@@ -569,6 +569,12 @@ func (b *Bot) loadData() {
 	if err := json.Unmarshal(buf, &b.data); err != nil {
 		log.Fatalf("Could not parse data file: %s", err)
 	}
+
+	// This might happen if a user edits twittermost.json manually.
+	// See issue #12.
+	if b.data.Trusted == nil {
+		b.data.Trusted = make(map[string]bool)
+	}
 }
 
 func (b *Bot) saveData() {
